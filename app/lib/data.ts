@@ -14,6 +14,11 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 export async function fetchRevenue() {
   try {
     console.log("🔄 Intentando conectar a la base de datos y obtener revenue...");
+
+    // Simula una carga lenta (Capítulo 8)
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
     const data = await sql<Revenue[]>`SELECT * FROM revenue`;
     console.log("✅ Datos de revenue recibidos:", data);
     return data;
