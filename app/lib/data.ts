@@ -13,48 +13,40 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 export async function fetchRevenue() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
+    console.log("🔄 Intentando conectar a la base de datos y obtener revenue...");
     const data = await sql<Revenue[]>`SELECT * FROM revenue`;
-
-    // console.log('Data fetch completed after 3 seconds.');
-
+    console.log("✅ Datos de revenue recibidos:", data);
     return data;
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ ERROR en fetchRevenue:', error);
     throw new Error('Failed to fetch revenue data.');
   }
 }
 
 export async function fetchLatestInvoices() {
   try {
+    console.log("🔄 Obteniendo las últimas facturas...");
     const data = await sql<LatestInvoiceRaw[]>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
       LIMIT 5`;
-
     const latestInvoices = data.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
     }));
+    console.log("✅ Últimas facturas recibidas:", latestInvoices);
     return latestInvoices;
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ ERROR en fetchLatestInvoices:', error);
     throw new Error('Failed to fetch the latest invoices.');
   }
 }
 
 export async function fetchCardData() {
   try {
-    // You can probably combine these into a single SQL query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
+    console.log("🔄 Obteniendo datos para las tarjetas del dashboard...");
     const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
     const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
     const invoiceStatusPromise = sql`SELECT
@@ -73,6 +65,13 @@ export async function fetchCardData() {
     const totalPaidInvoices = formatCurrency(data[2][0].paid ?? '0');
     const totalPendingInvoices = formatCurrency(data[2][0].pending ?? '0');
 
+    console.log("✅ Datos de tarjetas:", {
+      numberOfInvoices,
+      numberOfCustomers,
+      totalPaidInvoices,
+      totalPendingInvoices,
+    });
+
     return {
       numberOfCustomers,
       numberOfInvoices,
@@ -80,19 +79,17 @@ export async function fetchCardData() {
       totalPendingInvoices,
     };
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ ERROR en fetchCardData:', error);
     throw new Error('Failed to fetch card data.');
   }
 }
 
 const ITEMS_PER_PAGE = 6;
-export async function fetchFilteredInvoices(
-  query: string,
-  currentPage: number,
-) {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
+export async function fetchFilteredInvoices(query: string, currentPage: number) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   try {
+    console.log(`🔄 Buscando facturas que coincidan con: "${query}", página ${currentPage}`);
     const invoices = await sql<InvoicesTable[]>`
       SELECT
         invoices.id,
@@ -113,10 +110,9 @@ export async function fetchFilteredInvoices(
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
-
     return invoices;
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ ERROR en fetchFilteredInvoices:', error);
     throw new Error('Failed to fetch invoices.');
   }
 }
@@ -133,11 +129,10 @@ export async function fetchInvoicesPages(query: string) {
       invoices.date::text ILIKE ${`%${query}%`} OR
       invoices.status ILIKE ${`%${query}%`}
   `;
-
     const totalPages = Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
     return totalPages;
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ ERROR en fetchInvoicesPages:', error);
     throw new Error('Failed to fetch total number of invoices.');
   }
 }
@@ -156,13 +151,12 @@ export async function fetchInvoiceById(id: string) {
 
     const invoice = data.map((invoice) => ({
       ...invoice,
-      // Convert amount from cents to dollars
       amount: invoice.amount / 100,
     }));
 
     return invoice[0];
   } catch (error) {
-    console.error('Database Error:', error);
+    console.error('❌ ERROR en fetchInvoiceById:', error);
     throw new Error('Failed to fetch invoice.');
   }
 }
@@ -176,10 +170,9 @@ export async function fetchCustomers() {
       FROM customers
       ORDER BY name ASC
     `;
-
     return customers;
   } catch (err) {
-    console.error('Database Error:', err);
+    console.error('❌ ERROR en fetchCustomers:', err);
     throw new Error('Failed to fetch all customers.');
   }
 }
@@ -212,7 +205,7 @@ export async function fetchFilteredCustomers(query: string) {
 
     return customers;
   } catch (err) {
-    console.error('Database Error:', err);
+    console.error('❌ ERROR en fetchFilteredCustomers:', err);
     throw new Error('Failed to fetch customer table.');
   }
 }
